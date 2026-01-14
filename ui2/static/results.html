@@ -1,0 +1,193 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Results — Intern Recommender</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <link rel="stylesheet" href="main.css"/>
+  <style>
+    /* Page-specific tweaks */
+    .results-wrap{display:grid;grid-template-columns: 1fr 380px; gap:28px; align-items:start}
+    @media (max-width:1000px){ .results-wrap{grid-template-columns:1fr} .details-panel{order:2} }
+    .top3-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+    @media (max-width:900px){ .top3-grid{grid-template-columns:1fr} }
+    .confidence-badge{padding:8px 12px;border-radius:999px;color:#222222;font-weight:700;box-shadow:0 10px 30px rgba(79,70,229,0.12);display:inline-block}
+    .progress-wrap{height:10px;background:#eef2ff;border-radius:999px;overflow:hidden}
+    .progress-fill{height:100%;border-radius:999px;transition:width .7s cubic-bezier(.2,.9,.3,1)}
+    .skill-chip{display:inline-block;padding:6px 10px;border-radius:999px;background:linear-gradient(90deg,var(--primary),#7c3aed);color:#fff;margin:6px 6px 6px 0;font-size:13px}
+    .skill-tag-gray{background:#f1f5f9;color:#0f172a}
+    .details-panel .section{margin-bottom:18px;padding:16px;border-radius:10px;background:#fff;box-shadow:0 8px 20px rgba(15,23,42,0.04)}
+    .suggest-list li{margin-bottom:8px}
+    .muted-small{color:var(--muted);font-size:13px}
+  </style>
+</head>
+<body>
+  <nav class="navbar container navbar-expand-lg"><a class="navbar-brand fw-bold" href="index.html">Internship Recommender</a></nav>
+
+  <main class="container py-5">
+    <div class="mb-3">
+      <h2 class="mb-0">Top company recommendations</h2>
+      <!-- <p class="muted">Confidence percentages are model probabilities (approx.). Matched skills are tokens present in both your input and the company's required skills (if available).</p> -->
+    </div>
+
+    <div id="contentArea" class="results-wrap">
+      <!-- left: top 3 -->
+      <div>
+        <div id="top3" class="top3-grid"></div>
+
+        <div class="mt-4">
+          <h5>How to interpret</h5>
+          <p class="muted-small">Higher confidence means the model finds the student's profile more similar to historical interns who joined that company. Use matched skills to identify quick wins — learn 1-2 missing skills and reapply.</p>
+        </div>
+      </div>
+
+      <!-- right: details panel -->
+      <aside class="details-panel">
+        <div id="summary" class="section">
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <div id="bestCompanyName" class="h5 mb-1">—</div>
+              <div id="bestCompanySub" class="muted-small">Best match</div>
+            </div>
+            <div class="text-end">
+              <div id="bestConf" class="display-6" style="color:var(--primary)">—</div>
+              <div class="muted-small">confidence</div>
+            </div>
+          </div>
+          <hr/>
+          <div id="notes" class="muted-small"></div>
+        </div>
+
+        
+
+        <div id="suggestionsCard" class="section">
+          <h6 class="mb-2">Predicted by Internship Recommender (Major Project )</h6>
+          <ul id="suggestions" class="suggest-list muted-small"></ul>
+        </div>
+
+        <div id="metaCard" class="section">
+          <h6 class="mb-2">Prediction metadata</h6>
+          <div class="muted-small">Model: RandomForest</div>
+          <div class="muted-small" id="timestamp"></div>
+          <div class="mt-2">
+            <button id="saveBtn" class="btn btn-sm btn-outline-primary">Save to history</button>
+            <a href="index.html" class="btn btn-sm btn-link">Try again</a>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </main>
+
+<script>
+(function(){
+  // read stored prediction
+  const raw = sessionStorage.getItem('lastPrediction');
+  const top3Container = document.getElementById('top3');
+  const bestName = document.getElementById('bestCompanyName');
+  const bestSub = document.getElementById('bestCompanySub');
+  const bestConf = document.getElementById('bestConf');
+  const notesDiv = document.getElementById('notes');
+  const matchedDiv = document.getElementById('matchedSkills');
+  const noMatched = document.getElementById('noMatched');
+  const suggestions = document.getElementById('suggestions');
+  const ts = document.getElementById('timestamp');
+
+  if(!raw){
+    top3Container.innerHTML = '<div class="alert alert-warning">No recent prediction found. Please run a prediction first.</div>';
+    return;
+  }
+  const res = JSON.parse(raw);
+  if(!res.ok){
+    top3Container.innerHTML = '<div class="alert alert-danger">Prediction failed: '+(res.error||'unknown')+'</div>';
+    return;
+  }
+
+  const top3 = res.top3 || [];
+  const matched = res.matched || {};
+  const notes = res.notes || '';
+  const timestamp = res.ts || new Date().toLocaleString();
+
+  // Fill top-3 cards
+  top3Container.innerHTML = top3.map(([comp,prob],i)=> {
+    const width = Math.max(6, Math.round(prob*100));
+    // color gradient by index
+    const bg = i===0? 'linear-gradient(90deg,var(--primary),#7c3aed)' : i===1? 'linear-gradient(90deg,#06b6d4,#14b8a6)' : 'linear-gradient(90deg,#f59e0b,#f97316)';
+    return `
+      <div>
+        <div class="comp-card hover-card p-3" style="height:220px;display:flex;flex-direction:column;justify-content:space-between">
+          <div>
+            <div class="d-flex justify-content-between align-items-start">
+              <div style="max-width:70%">
+                <div style="font-weight:700;font-size:18px">${comp}</div>
+                <div class="muted-small">Rank #${i+1}</div>
+              </div>
+              <div style="text-align:right">
+                <div class="confidence-badge" style="background:${bg};">${(prob*100).toFixed(1)}%</div>
+                <div class="muted-small" style="margin-top:6px">confidence</div>
+              </div>
+            </div>
+            
+          </div>
+          <div>
+            <div class="progress-wrap mt-3"><div class="progress-fill" style="width:${(prob*100).toFixed(1)}%;background:${bg}"></div></div>
+            <div class="d-flex justify-content-between mt-2 muted-small"><div>Model score</div><div>${(prob*100).toFixed(1)}%</div></div>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+
+  // Best company (top1)
+  if(top3.length>0){
+    bestName.textContent = top3[0][0];
+    bestConf.textContent = (top3[0][1]*100).toFixed(1) + '%';
+    notesDiv.textContent = notes || 'Predicted using RandomForest.';
+  } else {
+    bestName.textContent = 'No recommendation';
+    bestConf.textContent = '-';
+  }
+  ts.textContent = 'Predicted: ' + timestamp;
+
+  // Matched skills (for best company)
+  const bestComp = top3.length? top3[0][0] : null;
+  const bestMatched = bestComp && matched[bestComp] ? matched[bestComp] : [];
+  matchedDiv.innerHTML = '';
+  if(bestMatched && bestMatched.length){
+    bestMatched.forEach(s=>{
+      const el = document.createElement('span');
+      el.className = 'skill-chip';
+      el.textContent = s;
+      matchedDiv.appendChild(el);
+    });
+    noMatched.style.display = 'none';
+  } else {
+    noMatched.style.display = 'block';
+  }
+
+  // Suggestions: simple heuristic: if matched < 3, suggest common tokens to learn (based on matched vs input)
+  const inputRaw = sessionStorage.getItem('lastInput') || null; // some flows store lastInput; if not present reconstruct from matched
+  // simple static suggestions as fallback
+  const defaultSuggestions = [
+    'Practice data structures & algorithms (DSA) for coding rounds.',
+    'Learn SQL basics — useful for data roles.',
+    'Build a small project using one of your skills and add it to your portfolio.',
+    'Focus on 1-2 in-demand tools: Python, React, or SQL depending on role.'
+  ];
+  // show 3 suggestions
+  suggestions.innerHTML = defaultSuggestions.map(s=>`<li>${s}</li>`).join('');
+
+  // save to localStorage when user presses Save button
+  document.getElementById('saveBtn').addEventListener('click', ()=>{
+    try {
+      const history = JSON.parse(localStorage.getItem('pred_history') || '[]');
+      history.push({ts: timestamp, top3: top3, matched: matched});
+      localStorage.setItem('pred_history', JSON.stringify(history.slice(-500)));
+      alert('Saved prediction to local history.');
+    } catch(e){
+      alert('Failed to save history.');
+    }
+  });
+
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,50 @@
+:root{
+  --bg1: #f0f4ff;
+  --primary: #4f46e5;
+  --accent: #06b6d4;
+  --card: #ffffff;
+  --muted: #6b7280;
+}
+
+*{box-sizing:border-box}
+body{font-family:Inter,Segoe UI,system-ui,Arial;background:linear-gradient(180deg,var(--bg1) 0,#fff 60%);margin:0;color:#0f172a}
+.navbar{padding:1rem 0}
+.navbar .btn-outline-light{border-color:rgba(255,255,255,0.15);color:#fff}
+.container{max-width:1100px}
+
+/* Hero */
+.card-lg{display:flex;gap:20px;align-items:center;padding:28px;border-radius:14px;background:linear-gradient(135deg,rgba(79,70,229,0.08),rgba(6,182,212,0.04));margin-bottom:24px}
+.hero-left h1{font-size:28px;margin:0 0 8px}
+.hero-left .muted{color:var(--muted)}
+.pill{display:inline-block;padding:6px 10px;border-radius:999px;background:linear-gradient(90deg,var(--primary),#7c3aed);color:#fff;margin-right:8px;font-size:13px;box-shadow:0 6px 18px rgba(79,70,229,0.08);transform:translateY(0);transition:transform .18s}
+.pill:hover{transform:translateY(-4px)}
+
+/* Form card */
+.form-card{margin-bottom:24px;padding:20px;background:var(--card);border-radius:12px;box-shadow:0 10px 30px rgba(15,23,42,0.06)}
+.required::after{content:" *";color:#ef4444}
+.input-anim{transition: box-shadow .18s, transform .12s; border:1px solid #e6edf3}
+.input-anim:focus{box-shadow:0 12px 30px rgba(79,70,229,0.08);transform:translateY(-2px);outline:none}
+
+/* small hints */
+.hint{font-size:13px;color:var(--muted);margin-top:4px}
+
+/* explain grid */
+.explain-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.explain-grid .q{background:var(--card);padding:14px;border-radius:10px;box-shadow:0 6px 20px rgba(20,20,50,0.03);border-left:4px solid var(--accent)}
+
+/* results card styles */
+.comp-card{background:linear-gradient(180deg,#fff, #fbfdff);padding:18px;border-radius:12px;box-shadow:0 12px 30px rgba(12,17,43,0.06);transition:transform .18s, box-shadow .18s}
+.hover-card:hover{transform:translateY(-8px);box-shadow:0 24px 42px rgba(12,17,43,0.12)}
+.comp-top{display:flex;justify-content:space-between;align-items:center}
+.comp-name{font-weight:700;font-size:18px}
+.conf{background:linear-gradient(90deg,var(--primary),#7c3aed);color:#fff;padding:6px 10px;border-radius:10px;font-weight:700}
+
+/* spinner */
+.spinner{width:20px;height:20px;border-radius:50%;border:3px solid rgba(0,0,0,0.08);border-top-color:var(--primary);animation:spin 1s linear infinite;display:inline-block;margin-right:10px;vertical-align:middle}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* small screens */
+@media (max-width:900px){
+  .card-lg{flex-direction:column}
+  .explain-grid{grid-template-columns:1fr}
+}
