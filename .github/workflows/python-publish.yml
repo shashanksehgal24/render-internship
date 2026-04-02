@@ -2,9 +2,12 @@ name: Internship Recommendation CI/CD
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   build-and-test:
@@ -24,11 +27,11 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Run Model / Script
+      - name: Run Model
         run: |
           python main.py
 
-      - name: Run Tests (Optional)
+      - name: Run Tests
         run: |
           pytest || echo "No tests found"
 
@@ -37,9 +40,5 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Deploy Step (Dummy)
-        run: |
-          echo "Deploy your app here"
+      - name: Dummy Deploy
+        run: echo "Deploy step here"
