@@ -18,4 +18,4 @@ commands to run from GPT (shashank sehgal)
 
 
 5:- 
-        python app,py
+        python app.py
