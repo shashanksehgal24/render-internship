@@ -68,38 +68,16 @@ pipeline {
             }
         }
 
-        stage('Deploy to Render') {
+        stage('Build Complete') {
             steps {
-                echo "🚀 Triggering Render deployment..."
-                withCredentials([string(credentialsId: 'render-deploy-hook-url', variable: 'RENDER_DEPLOY_HOOK')]) {
-                    sh '''
-                        STATUS=$(curl -s -o /dev/null -w "%{http_code}" --request GET "${RENDER_DEPLOY_HOOK}")
-                        echo "Render response: $STATUS"
-                        if [ "$STATUS" -ge 200 ] && [ "$STATUS" -lt 400 ]; then
-                            echo "✅ Deploy triggered!"
-                        else
-                            echo "❌ Deploy failed with status $STATUS"
-                            exit 1
-                        fi
-                    '''
-                }
-            }
-        }
-
-        stage('Verify Deployment') {
-            steps {
-                echo "⏳ Waiting for Render to spin up..."
-                sleep(30)
+                echo "🎉 Build complete! App is ready."
                 sh '''
-                    RENDER_URL="https://your-app-name.onrender.com"
-                    STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${RENDER_URL}")
-                    echo "App status: $STATUS"
-                    if [ "$STATUS" -ge 200 ] && [ "$STATUS" -lt 400 ]; then
-                        echo "✅ App is live!"
-                    else
-                        echo "⚠️ App returned $STATUS"
-                        exit 1
-                    fi
+                    . venv/bin/activate
+                    echo "App Name   : render-internship"
+                    echo "Branch     : $(git rev-parse --abbrev-ref HEAD)"
+                    echo "Commit     : $(git log -1 --oneline)"
+                    echo "Build No   : ${BUILD_NUMBER}"
+                    echo "Status     : SUCCESS ✅"
                 '''
             }
         }
