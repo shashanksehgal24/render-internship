@@ -1,13 +1,6 @@
 pipeline {
     agent any
 
-    environment {
-        APP_NAME   = "render-internship"
-        RENDER_DEPLOY_HOOK = credentials('render-deploy-hook-url')
-        MONGO_URI  = credentials('mongo-uri')
-        SECRET_KEY = credentials('flask-secret-key')
-    }
-
     options {
         buildDiscarder(logRotator(numToKeepStr: '10'))
         timeout(time: 30, unit: 'MINUTES')
@@ -52,10 +45,14 @@ pipeline {
                 echo "🧪 Running tests..."
                 sh '''
                     . venv/bin/activate
-                    pip install pytest pytest-cov --quiet
+                    pip install pytest --quiet
                     export MONGO_URI="mongodb://localhost:27017/test_db"
                     export SECRET_KEY="test-secret"
-                    pytest tests/ -v --tb=short || true
+                    if [ -d "tests" ]; then
+                        pytest tests/ -v --tb=short || true
+                    else
+                        echo "⚠️ No tests directory found, skipping..."
+                    fi
                 '''
             }
         }
@@ -72,28 +69,24 @@ pipeline {
         }
 
         stage('Deploy to Render') {
-            when {
-                branch 'main'
-            }
             steps {
                 echo "🚀 Triggering Render deployment..."
-                sh '''
-                    STATUS=$(curl -s -o /dev/null -w "%{http_code}" --request GET "${RENDER_DEPLOY_HOOK}")
-                    echo "Render response: $STATUS"
-                    if [ "$STATUS" -ge 200 ] && [ "$STATUS" -lt 400 ]; then
-                        echo "✅ Deploy triggered!"
-                    else
-                        echo "❌ Deploy failed with status $STATUS"
-                        exit 1
-                    fi
-                '''
+                withCredentials([string(credentialsId: 'render-deploy-hook-url', variable: 'RENDER_DEPLOY_HOOK')]) {
+                    sh '''
+                        STATUS=$(curl -s -o /dev/null -w "%{http_code}" --request GET "${RENDER_DEPLOY_HOOK}")
+                        echo "Render response: $STATUS"
+                        if [ "$STATUS" -ge 200 ] && [ "$STATUS" -lt 400 ]; then
+                            echo "✅ Deploy triggered!"
+                        else
+                            echo "❌ Deploy failed with status $STATUS"
+                            exit 1
+                        fi
+                    '''
+                }
             }
         }
 
         stage('Verify Deployment') {
-            when {
-                branch 'main'
-            }
             steps {
                 echo "⏳ Waiting for Render to spin up..."
                 sleep(30)
@@ -121,8 +114,9 @@ pipeline {
             echo "❌ Build #${BUILD_NUMBER} failed — check logs."
         }
         always {
-            cleanWs()
+            node('built-in') {
+                cleanWs()
+            }
         }
     }
-
 }
